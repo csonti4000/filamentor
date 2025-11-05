@@ -1,5 +1,5 @@
 {
-    "name": "geosem42/filamentor",
+    "name": "csonti4000/filamentor",
     "description": "Filamentor - A flexible page builder for Laravel Filament",
     "version": "1.1.1",
     "keywords": [
@@ -7,7 +7,7 @@
         "laravel",
         "filamentor"
     ],
-    "homepage": "https://github.com/geosem42/filamentor",
+    "homepage": "https://github.com/csonti4000/filamentor.git",
     "support": {
         "issues": "https://github.com/geosem42/filamentor/issues",
         "source": "https://github.com/geosem42/filamentor"
