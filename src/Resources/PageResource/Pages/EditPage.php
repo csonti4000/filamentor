@@ -5,14 +5,15 @@ namespace Geosem42\Filamentor\Resources\PageResource\Pages;
 use geosem42\Filamentor\Resources\PageResource;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Forms\Form;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Grid;
 use Illuminate\Support\Facades\Log;
 use Filament\Forms\Components\FileUpload;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Geosem42\Filamentor\Support\ElementRegistry;
 use Geosem42\Filamentor\Contracts\ElementInterface;
 use Livewire\WithFileUploads;
@@ -26,7 +27,7 @@ class EditPage extends EditRecord
     use WithFileUploads;
 
     protected static string $resource = PageResource::class;
-    protected static string $view = 'filamentor::pages.builder';
+    protected string $view = 'filamentor::pages.builder';
     protected $listeners = ['editElement'];
     public $activeElementType = '';
     public $temporaryUpload;
@@ -47,7 +48,7 @@ class EditPage extends EditRecord
         ]
     ];
 
-    public function form(Form $form): Form
+    public function form(Schema $form): Schema
     {
         return $form
             ->schema([
@@ -60,7 +61,7 @@ class EditPage extends EditRecord
                             ->afterStateUpdated(function (string $operation, $state, callable $set) {
                                 $set('slug', Str::slug($state));
                             }),
-                            
+
                         TextInput::make('slug')
                             ->required()
                             ->maxLength(255)
@@ -68,11 +69,11 @@ class EditPage extends EditRecord
                             ->dehydrated()
                             ->rules(['alpha_dash'])
                             ->helperText('The URL-friendly name for your page (auto-generated from title)'),
-                            
+
                         Textarea::make('description')
                             ->maxLength(255)
                             ->helperText('A brief summary of this page (optional)'),
-                            
+
                         Grid::make()
                             ->schema([
                                 Toggle::make('is_published')
@@ -81,19 +82,19 @@ class EditPage extends EditRecord
                                     ->default(false),
                             ]),
                     ]),
-                    
+
                 Section::make('SEO Information')
                     ->schema([
                         TextInput::make('meta_title')
                             ->label('Meta Title')
                             ->helperText('Overrides the default title tag. Recommended length: 50-60 characters')
                             ->maxLength(60),
-                            
+
                         Textarea::make('meta_description')
                             ->label('Meta Description')
                             ->helperText('A short description of the page for search engines. Recommended length: 150-160 characters')
                             ->maxLength(160),
-                            
+
                         FileUpload::make('og_image')
                             ->label('Social Media Image')
                             ->image()
@@ -105,7 +106,7 @@ class EditPage extends EditRecord
 
     /**
      * Prepares the form for editing a specific element type
-     * 
+     *
      * @param string $type The element type class name
      * @param array|null $content The current content of the element
     */
@@ -114,13 +115,13 @@ class EditPage extends EditRecord
     {
         try {
             $this->isLoading = true;
-            
+
             // Reset element data first
             $this->resetElementData();
-            
+
             // Store the active element type
             $this->activeElementType = $type;
-            
+
             // Initialize and populate element data structure based on type
             if (str_contains($type, 'Text')) {
                 $this->elementData['text'] = [
@@ -145,7 +146,7 @@ class EditPage extends EditRecord
             ]);
         } finally {
             $this->isLoading = false;
-            
+
             // Get the element form regardless of any errors
             $this->getElementForm();
         }
@@ -153,54 +154,54 @@ class EditPage extends EditRecord
 
     /**
      * Generates a Filament form for editing the currently active element
-     * 
+     *
      * @return \Filament\Forms\Form The generated form instance
     */
 
-    public function getElementForm(): Form
+    public function getElementForm(): Schema
     {
         try {
             // Check if we have an active element type
             if (empty($this->activeElementType)) {
                 Log::warning('Attempted to build form with no active element type');
-                return Form::make($this)->schema([]);
+                return Schema::make($this)->schema([]);
             }
-            
+
             // Get the element registry service
             $registry = app(ElementRegistry::class);
-            
+
             // Get the element for the active type
             $element = $registry->getElement($this->activeElementType);
-            
+
             // Build the schema based on the element's settings
             if ($element instanceof ElementInterface) {
-                return Form::make($this)
+                return Schema::make($this)
                     ->schema($this->buildElementFormSchema($element));
             }
-            
+
             // Log that we couldn't find a valid element
             Log::warning('Element not found or invalid', [
                 'type' => $this->activeElementType
             ]);
-            
+
             // Return empty form if element doesn't exist
-            return Form::make($this)->schema([]);
+            return Schema::make($this)->schema([]);
         } catch (\Exception $e) {
             // Log any exceptions
             Log::error('Error building element form', [
                 'exception' => $e->getMessage(),
                 'type' => $this->activeElementType ?? 'unknown'
             ]);
-            
+
             // Return an empty form in case of exception
-            return Form::make($this)->schema([]);
+            return Schema::make($this)->schema([]);
         }
     }
 
     /**
      * Processes and uploads media files for elements
      * Creates both original and thumbnail versions of images
-     * 
+     *
      * @return array|null Image data array or null if no media uploaded
     */
 
@@ -236,7 +237,7 @@ class EditPage extends EditRecord
 
             // Generate and store thumbnail
             $thumbnailPath = $thumbnailDir . '/' . basename($path);
-            
+
             try {
                 $manager = new ImageManager(new Driver());
                 $image = $manager->read($file->getRealPath());
@@ -275,7 +276,7 @@ class EditPage extends EditRecord
     /**
      * Saves content for the currently active element
      * Updates the appropriate data structure based on element type
-     * 
+     *
      * @param mixed $content The content to save
      * @return array|null The updated element data or null if unsuccessful
     */
@@ -289,7 +290,7 @@ class EditPage extends EditRecord
             }
 
             $result = null;
-            
+
             // Using if-elseif instead of switch with str_contains which isn't proper switch-case usage
             if (str_contains($this->activeElementType, 'Text')) {
                 $this->elementData['text']['content'] = $content;
@@ -308,17 +309,17 @@ class EditPage extends EditRecord
 
             // Clean up the media property after saving
             $this->media = null;
-            
+
             return $result;
         } catch (\Exception $e) {
             Log::error('Failed to save element content', [
                 'error' => $e->getMessage(),
                 'type' => $this->activeElementType ?? 'unknown'
             ]);
-            
+
             // Clean up even if there's an error
             $this->media = null;
-            
+
             return null;
         }
     }
@@ -332,7 +333,7 @@ class EditPage extends EditRecord
     {
         // Clear any uploaded media files
         $this->media = null;
-        
+
         // Reset all element data structures to their default states
         $this->elementData = [
             'text' => [
@@ -352,7 +353,7 @@ class EditPage extends EditRecord
     /**
      * Builds a form schema based on an element's settings
      * Converts element settings into appropriate Filament form components
-     * 
+     *
      * @param ElementInterface $element The element to build the form for
      * @return array The form schema array
     */
@@ -361,7 +362,7 @@ class EditPage extends EditRecord
         try {
             // Get settings from the element
             $settings = $element->getSettings();
-            
+
             // Validate settings is an array
             if (!is_array($settings)) {
                 Log::warning('Element settings is not an array', [
@@ -370,14 +371,14 @@ class EditPage extends EditRecord
                 ]);
                 return [];
             }
-            
+
             // Transform each setting into a form component
             return collect($settings)->map(function ($setting, $key) {
                 // Validate setting structure
                 if (!isset($setting['type']) || !isset($setting['label'])) {
                     return null; // Skip invalid settings
                 }
-                
+
                 // Match setting type to appropriate form component
                 return match ($setting['type']) {
                     'file' => $this->buildFileUploadComponent($setting),
@@ -400,7 +401,7 @@ class EditPage extends EditRecord
 
     /**
      * Builds a file upload component for image elements
-     * 
+     *
      * @param array $setting The setting configuration
      * @return FileUpload The configured FileUpload component
     */
@@ -421,8 +422,8 @@ class EditPage extends EditRecord
                         '<div class="mt-2">
                             <p class="text-sm font-medium">Current image:</p>
                             <div class="mt-1">
-                                <img src="' . $this->elementData['image']['url'] . '" 
-                                    alt="Current image" 
+                                <img src="' . $this->elementData['image']['url'] . '"
+                                    alt="Current image"
                                     class="w-40 h-auto object-cover rounded-lg border border-gray-200" />
                             </div>
                         </div>'
@@ -434,7 +435,7 @@ class EditPage extends EditRecord
 
     /**
      * Builds a text input component based on element type
-     * 
+     *
      * @param array $setting The setting configuration
      * @return TextInput The configured TextInput component
     */
@@ -444,13 +445,13 @@ class EditPage extends EditRecord
         $fieldName = str_contains($this->activeElementType, 'Video')
             ? 'elementData.video.url'
             : 'elementData.image.alt';
-            
+
         return TextInput::make($fieldName)->label($setting['label']);
     }
 
     /**
      * Saves the page layout structure to the database
-     * 
+     *
      * @param string $layout JSON string containing the layout structure
      * @return array Response with success status and message
     */
@@ -462,12 +463,12 @@ class EditPage extends EditRecord
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new \InvalidArgumentException('Invalid JSON layout data provided');
             }
-            
+
             // Update and save the record
             $this->record->layout = $layout;
             $this->record->save();
             $this->record->refresh();
-            
+
             return [
                 'success' => true,
                 'message' => 'Layout saved successfully'
@@ -477,7 +478,7 @@ class EditPage extends EditRecord
                 'error' => $e->getMessage(),
                 'record_id' => $this->record->id ?? null
             ]);
-            
+
             return [
                 'success' => false,
                 'message' => 'Failed to save layout: ' . $e->getMessage()
@@ -487,7 +488,7 @@ class EditPage extends EditRecord
 
     /**
      * Reorders columns within a specific row
-     * 
+     *
      * @param int|string $rowId The ID of the row to update
      * @param string $columns JSON string containing the updated columns
      * @return void
@@ -500,18 +501,18 @@ class EditPage extends EditRecord
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new \InvalidArgumentException('Invalid layout JSON in record');
             }
-            
+
             // Decode columns data
             $columnsData = json_decode($columns, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new \InvalidArgumentException('Invalid columns JSON provided');
             }
-            
+
             // Validate layout is an array
             if (!is_array($layout)) {
                 throw new \InvalidArgumentException('Layout is not a valid array');
             }
-            
+
             // Find and update the specific row's columns
             $rowFound = false;
             foreach ($layout as &$row) {
@@ -521,13 +522,13 @@ class EditPage extends EditRecord
                     break;
                 }
             }
-            
+
             if (!$rowFound) {
                 Log::warning('Row not found during column reordering', [
                     'row_id' => $rowId
                 ]);
             }
-            
+
             // Save the entire layout
             $this->record->layout = json_encode($layout);
             $this->record->save();
